@@ -2,18 +2,27 @@ import 'google-apps-script';
 //Google Apps needs the empty function to work
 function myFunction() {}
 
+//Need to solve the mail thingy. It sends the file unedited. Maybe you'll need to find the ID again.
+
 //this is the mail related object, it will send the completed sheets to final recipient
 const mailFetcher = (function(){
     let fileToSend;
     const setAttachment = (attach)=> {
       fileToSend = DriveApp.getFileById(attach);
     }
-    const sendMail = (address,subject,body,Name) => {
+    const sendMail = (address,subject,body,Name,modifiedFile) => {
       
+      
+
       GmailApp.sendEmail(address,subject,body,{
-        attachments: [fileToSend.getAs(MimeType.CSV)],
+        attachments: [
+          fileToSend.getAs(MimeType.CSV),
+          modifiedFile
+        ],
         name: Name
       });
+
+     // tempFile.setTrashed(true); this is how you may delete stuff alter
     };
     return {sendMail,setAttachment}
   })();
@@ -36,7 +45,8 @@ const driveFolder = (function(){
      return newFile.getId();
       //note: once the mail is sent, you should delete the new file
     }
-    const loadDataFromApp = ()=> {
+    //function that finds all the average values from the raw data and returns them in an array
+    const findDataFromApp = ()=> {
         let originalData = Utilities.parseCsv(sheet.getBlob().getDataAsString());
         const recordedValues = [];
         let foundEnd = false;
@@ -44,7 +54,8 @@ const driveFolder = (function(){
         {
           for(let j = 0; j < originalData[i].length; j++)
           {
-            console.log(originalData[i][j]);
+            if(originalData[i][j] === 'Ø')
+              recordedValues.push(originalData[i][j+2]);            
             if(originalData[i][j] === 'Máximo total')
             {
               foundEnd = true;
@@ -55,16 +66,30 @@ const driveFolder = (function(){
           if(foundEnd)
             break;
         }
+        return recordedValues;
     }
-    return {getFile,setFile,createCopyFile,loadDataFromApp};
+    const loadDataFromApp = ()=> {
+      const valuesToUse = findDataFromApp();
+      const newSheet = templateSheet.makeCopy('Medicion Hoy');
+      const editingSheet = SpreadsheetApp.openById(newSheet.getId()).getActiveSheet();
+
+      const valuesArray = valuesToUse.map(value => [value]);
+
+      let range = editingSheet.getRange('D9:D11');
+      range.setValues(valuesArray);
+      return newSheet;
+    }
+
+    return {getFile,setFile,createCopyFile,findDataFromApp,loadDataFromApp};
   })();
 
   
 
 driveFolder.setFile('1Fzm-pnhaOkcP4n1T3sZMASDuquYHvASr');
-driveFolder.loadDataFromApp();
 
-/*let attatchment = driveFolder.createCopyFile();
 
-mailFetcher.setAttachment(attatchment);
-mailFetcher.sendMail('oscar6494@gmail.com','Test file', 'Check attactchment');*/
+let firstAttatchment = driveFolder.createCopyFile();
+let secondAttachment = driveFolder.loadDataFromApp();
+
+mailFetcher.setAttachment(firstAttatchment);
+mailFetcher.sendMail('oscar6494@gmail.com','Test file', 'Check attactchment','archivos',secondAttachment);
