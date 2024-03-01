@@ -1,6 +1,9 @@
 import 'google-apps-script';
+
+
 //Google Apps needs the empty function to work
 function myFunction() {}
+
 
 //Need to solve the mail thingy. It sends the file unedited. Maybe you'll need to find the ID again.
 
@@ -12,13 +15,12 @@ const mailFetcher = (function(){
     }
     const sendMail = (address,subject,body,Name,modifiedFile) => {
       
-      
-
       GmailApp.sendEmail(address,subject,body,{
         attachments: [
           fileToSend.getAs(MimeType.CSV),
           modifiedFile
         ],
+        
         name: Name
       });
 
@@ -73,23 +75,44 @@ const driveFolder = (function(){
       const newSheet = templateSheet.makeCopy('Medicion Hoy');
       const editingSheet = SpreadsheetApp.openById(newSheet.getId()).getActiveSheet();
 
-      const valuesArray = valuesToUse.map(value => [value]);
+      const valuesArray = [];
+      for (let i = 0; i < valuesToUse.length; i += 2) {
+          valuesArray.push([valuesToUse[i], valuesToUse[i + 1]]);
+      }
 
-      let range = editingSheet.getRange('D9:D11');
+      let range = editingSheet.getRange('D9:E14');
       range.setValues(valuesArray);
-      return newSheet;
+      SpreadsheetApp.flush();
+      const returnFile = DriveApp.getFileById(newSheet.getId());
+      return returnFile;
     }
 
     return {getFile,setFile,createCopyFile,findDataFromApp,loadDataFromApp};
   })();
 
-  
 
-driveFolder.setFile('1Fzm-pnhaOkcP4n1T3sZMASDuquYHvASr');
+
+driveFolder.setFile('121GgIXCuNLle-bwcMdURSYDkBgF76bPz');
 
 
 let firstAttatchment = driveFolder.createCopyFile();
-let secondAttachment = driveFolder.loadDataFromApp();
+let secondAttachment = driveFolder.loadDataFromApp().getId();
+
+let link = "https://docs.google.com/spreadsheets/d/" +secondAttachment+"/export"
+const parametro = {
+  headers: {
+    "Authorization": 'Bearer ' + ScriptApp.getOAuthToken(),
+  },
+  method: 'GET',
+  muteHttpExceptions: true
+}
+
+const url = "https://docs.google.com/feeds/download/spreadsheets/Export?key=" + secondAttachment + "&exportFormat=xlsx";
+
+const response = UrlFetchApp.fetch(link,parametro);
+const excelFile = response.getBlob().setName('Planilla cargada.xlsx');
+
+
 
 mailFetcher.setAttachment(firstAttatchment);
-mailFetcher.sendMail('oscar6494@gmail.com','Test file', 'Check attactchment','archivos',secondAttachment);
+mailFetcher.sendMail('oscar6494@gmail.com','Mail de prueba', 'Se adjuntan los datos en crudo y la planilla generada.','archivos.xlsx',excelFile);
