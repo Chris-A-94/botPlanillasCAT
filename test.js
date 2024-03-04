@@ -2,6 +2,7 @@ import 'google-apps-script';
 
 
 //Google Apps needs the empty function to work
+
 function myFunction() {}
 
 
@@ -25,6 +26,7 @@ const mailFetcher = (function(){
       });
 
      // tempFile.setTrashed(true); this is how you may delete stuff alter
+     driveFolder.deleteTemporaryFiles(fileToSend);
     };
     return {sendMail,setAttachment}
   })();
@@ -32,6 +34,7 @@ const mailFetcher = (function(){
 //drive related object, it will fetch CSV files when they're uploaded
 const driveFolder = (function(){
     let sheet;
+    let secondAttachment;
     const templateSheet = DriveApp.getFileById('1tAJq_4vK0Vfi_ATQdaPtk1skqc6X0-oheAyrVaux1_w');
     const setFile = (ID)=> sheet = DriveApp.getFileById(ID);
     const getFile = ()=> sheet;
@@ -87,32 +90,39 @@ const driveFolder = (function(){
       return returnFile;
     }
 
-    return {getFile,setFile,createCopyFile,findDataFromApp,loadDataFromApp};
+    const loadSecondAttachment = ()=> {
+      secondAttachment = loadDataFromApp().getId();
+      let link = "https://docs.google.com/spreadsheets/d/" +secondAttachment+"/export"
+      const parametro = {
+      headers: {
+        "Authorization": 'Bearer ' + ScriptApp.getOAuthToken(),
+      },
+      method: 'GET',
+      muteHttpExceptions: true
+      }     
+
+      const response = UrlFetchApp.fetch(link,parametro);
+      const excelFile = response.getBlob().setName('Planilla cargada.xlsx');
+      return excelFile;
+    };
+
+    const deleteTemporaryFiles = (firstFile)=>{
+      Drive.Files.remove(firstFile.getId());
+      Drive.Files.remove(secondAttachment);
+    };
+
+    return {getFile,setFile,createCopyFile,findDataFromApp,loadSecondAttachment,deleteTemporaryFiles};
   })();
-
-
 
 driveFolder.setFile('121GgIXCuNLle-bwcMdURSYDkBgF76bPz');
 
-
+//sets first attachment by copying the raw data and setting it as the attachment variable within object.
 let firstAttatchment = driveFolder.createCopyFile();
-let secondAttachment = driveFolder.loadDataFromApp().getId();
-
-let link = "https://docs.google.com/spreadsheets/d/" +secondAttachment+"/export"
-const parametro = {
-  headers: {
-    "Authorization": 'Bearer ' + ScriptApp.getOAuthToken(),
-  },
-  method: 'GET',
-  muteHttpExceptions: true
-}
-
-const url = "https://docs.google.com/feeds/download/spreadsheets/Export?key=" + secondAttachment + "&exportFormat=xlsx";
-
-const response = UrlFetchApp.fetch(link,parametro);
-const excelFile = response.getBlob().setName('Planilla cargada.xlsx');
-
-
-
 mailFetcher.setAttachment(firstAttatchment);
-mailFetcher.sendMail('oscar6494@gmail.com','Mail de prueba', 'Se adjuntan los datos en crudo y la planilla generada.','archivos.xlsx',excelFile);
+
+
+//calculates and creates second sheet within driveFolder
+let secondAttachment = driveFolder.loadSecondAttachment();
+
+//only sets second attachment, as the first one is already set.
+mailFetcher.sendMail('oscar6494@gmail.com','Mail de prueba', 'Se adjuntan los datos en crudo y la planilla generada.','archivos.xlsx',secondAttachment);
