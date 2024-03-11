@@ -79,9 +79,22 @@ const driveFolder = (function(){
       const editingSheet = SpreadsheetApp.openById(newSheet.getId()).getActiveSheet();
 
       const valuesArray = [];
-      for (let i = 0; i < valuesToUse.length; i += 2) {
+     /* for (let i = 0; i < valuesToUse.length; i += 2) {
           valuesArray.push([valuesToUse[i], valuesToUse[i + 1]]);
+      }*/
+      
+      
+      if(valuesToUse.length % 2 === 0)
+      {
+        for (let i = 0; i < valuesToUse.length/2; i ++) 
+          valuesArray.push([valuesToUse[i], valuesToUse[i + valuesToUse.length/2]]);
       }
+      else
+      {
+        for (let i = 0; i < valuesToUse.length/2; i ++) 
+          valuesArray.push([valuesToUse[i], valuesToUse[i + 1 + valuesToUse.length/2]]);
+        valuesArray.push([valuesToUse[valuesToUse.length], 0]);
+      }        
 
       let range = editingSheet.getRange('D9:E14');
       range.setValues(valuesArray);
