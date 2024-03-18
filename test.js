@@ -6,8 +6,6 @@ import 'google-apps-script';
 function myFunction() {}
 
 
-//Need to solve the mail thingy. It sends the file unedited. Maybe you'll need to find the ID again.
-
 //this is the mail related object, it will send the completed sheets to final recipient
 const mailFetcher = (function(){
   let fileToSend;
@@ -103,9 +101,9 @@ const driveFolder = (function(){
     }
     else
     {
-      for (let i = 0; i < valuesToUse.length/2; i ++) 
-        valuesArray.push([valuesToUse[i], valuesToUse[i + 1 + valuesToUse.length/2]]);
-      valuesArray.push([valuesToUse[valuesToUse.length]]);
+      for (let i = 0; i <  Math.floor(valuesToUse.length / 2); i ++) 
+        valuesArray.push([valuesToUse[i], valuesToUse[i + Math.ceil(valuesToUse.length / 2)]]);
+      valuesArray.push([valuesToUse[Math.floor(valuesToUse.length / 2)], '']);
     }
     const calculatedData = insertarFormulasSuperior(valuesToUse);   
     const formulasInferior = [];
@@ -114,6 +112,15 @@ const driveFolder = (function(){
 
 
     let range = editingSheet.getRange("D9:E"+ (9+ (Math.ceil(valuesToUse.length/2) - 1)) +"");
+    if(9+ (Math.ceil(valuesToUse.length/2) - 1) < 18)
+    {
+      editingSheet.getRange("D"+ (9+ (Math.ceil(valuesToUse.length/2))) +":E18").setBackground(editingSheet.getRange("E18").getBackground());
+    }
+    else
+    {
+      editingSheet.getRange("D9:E18").setBackground('white');
+    }
+    
     range.setValues(valuesArray);
     range = editingSheet.getRange('D21:D26');
     range.setFormulas(calculatedData);
@@ -148,7 +155,8 @@ const driveFolder = (function(){
   return {getFile,setFile,createCopyFile,findDataFromApp,loadSecondAttachment,deleteTemporaryFiles};
 })();
 
-driveFolder.setFile('121GgIXCuNLle-bwcMdURSYDkBgF76bPz');
+//driveFolder.setFile('121GgIXCuNLle-bwcMdURSYDkBgF76bPz'); 12 mediciones
+driveFolder.setFile('14XjP4ylK1O5zknphuR5PAdp4j0vYzB2m'); //3 mediciones
 
 //sets first attachment by copying the raw data and setting it as the attachment variable within object.
 let firstAttatchment = driveFolder.createCopyFile();
