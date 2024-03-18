@@ -74,11 +74,11 @@ const driveFolder = (function(){
       return recordedValues;
   }
 
-  const insertarFormulas = (arrayOfValues) => {
+  const insertarFormulasSuperior = (arrayOfValues) => {
     const returnArray = [];
     returnArray.push(["="+arrayOfValues.length]);
     returnArray.push(["=AVERAGE(D9:E18)"]);
-    returnArray.push(["=SQRT(SUMPRODUCT((D9:E"+ (9+ (arrayOfValues.length/2 - 1)) +"-D22)^2)/(D21-1))"]);
+    returnArray.push(["=SQRT(SUMPRODUCT((D9:E"+ (9+ (Math.ceil(arrayOfValues.length/2) - 1)) +"-D22)^2)/(D21-1))"]);
     returnArray.push(["=(D23*2)/SQRT(D21)"]);
     returnArray.push(["=0.3*(1+5%)"]);
     returnArray.push(["=SQRT(D24^2+D25^2)"]);
@@ -86,15 +86,14 @@ const driveFolder = (function(){
     return returnArray;
   };
 
+  
+
   const loadDataFromApp = ()=> {
     const valuesToUse = findDataFromApp();
     const newSheet = templateSheet.makeCopy('Medicion Hoy');
     const editingSheet = SpreadsheetApp.openById(newSheet.getId()).getActiveSheet();
 
-    const valuesArray = [];
-   /* for (let i = 0; i < valuesToUse.length; i += 2) {
-        valuesArray.push([valuesToUse[i], valuesToUse[i + 1]]);
-    }*/
+    const valuesArray = [];  
     
     
     if(valuesToUse.length % 2 === 0)
@@ -106,14 +105,20 @@ const driveFolder = (function(){
     {
       for (let i = 0; i < valuesToUse.length/2; i ++) 
         valuesArray.push([valuesToUse[i], valuesToUse[i + 1 + valuesToUse.length/2]]);
-      valuesArray.push([valuesToUse[valuesToUse.length]]);// deleted a 0 here
+      valuesArray.push([valuesToUse[valuesToUse.length]]);
     }
-    const calculatedData = insertarFormulas(valuesToUse);        
+    const calculatedData = insertarFormulasSuperior(valuesToUse);   
+    const formulasInferior = [];
+    formulasInferior.push(["=PI() * (D29/2000)^2"]);
+    formulasInferior.push(["=D22*D32*3600"]);
 
-    let range = editingSheet.getRange('D9:E14');
+
+    let range = editingSheet.getRange("D9:E"+ (9+ (Math.ceil(valuesToUse.length/2) - 1)) +"");
     range.setValues(valuesArray);
     range = editingSheet.getRange('D21:D26');
     range.setFormulas(calculatedData);
+    range = editingSheet.getRange('D32:D33');
+    range.setFormulas(formulasInferior);
     SpreadsheetApp.flush();
     const returnFile = DriveApp.getFileById(newSheet.getId());
     return returnFile;
