@@ -154,8 +154,8 @@ const driveFolder = (function(){
 
   return {getFile,setFile,createCopyFile,findDataFromApp,loadSecondAttachment,deleteTemporaryFiles};
 })();
-
-//driveFolder.setFile('121GgIXCuNLle-bwcMdURSYDkBgF76bPz'); 12 mediciones
+/*
+//driveFolder.setFile('121GgIXCuNLle-bwcMdURSYDkBgF76bPz'); //12 mediciones
 driveFolder.setFile('14XjP4ylK1O5zknphuR5PAdp4j0vYzB2m'); //3 mediciones
 
 //sets first attachment by copying the raw data and setting it as the attachment variable within object.
@@ -168,3 +168,74 @@ let secondAttachment = driveFolder.loadSecondAttachment();
 
 //only sets second attachment, as the first one is already set.
 mailFetcher.sendMail('oscar6494@gmail.com','Mail de prueba', 'Se adjuntan los datos en crudo y la planilla generada.','archivos.xlsx',secondAttachment);
+*/
+//folder ID: 1hsvtcRs5PYQtu5iP6yIXDdSN7yZGscR
+
+//the following is code taken from this stackOverflow page by user Marios
+//https://stackoverflow.com/questions/65901844/google-apps-script-trigger-run-whenever-a-new-file-is-added-to-a-folder
+//It's supposed to check the drive folder, count the amount of files, and run the code if it has changed
+
+function countFiles(folderID) {
+  const theFolder = DriveApp.getFolderById(folderID);
+  const files = theFolder.getFiles();
+  let count = 0;
+  while (files.hasNext()) {
+   let file = files.next();
+   count++;
+   };
+  return count;
+}
+
+
+function checkProperty(folderID, newC){
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const oldCounter = scriptProperties.getProperty(folderID);
+  const newCounter = newC.toString();
+  if(oldCounter){
+    if(oldCounter==newCounter){
+      return false;
+    }
+    else{
+      scriptProperties.setProperty(folderID, newCounter);  
+      return true;
+    }
+  }
+  else{
+     scriptProperties.setProperty(folderID, newCounter);  
+     return true;
+  }
+}
+
+function mainFunction(){
+  const folderID = '1hsvtcRs5PYQtu5iP6yIXDdSN7yZGscR-'; //provide here the ID of the folder
+  const newCounter = countFiles(folderID);
+  const runCode = checkProperty(folderID, newCounter);
+  
+  if(runCode){
+   // here execute your main code
+   //    
+   var query = "'"+ folderID +"' in parents";
+   var files = Drive.Files.list({
+     orderBy: "modifiedDate desc",
+      q: query
+   }).items;
+
+
+   //my code that sets off everything
+   driveFolder.setFile(files[0].id); //3 mediciones
+
+    //sets first attachment by copying the raw data and setting it as the attachment variable within object.
+    let firstAttatchment = driveFolder.createCopyFile();
+    mailFetcher.setAttachment(firstAttatchment);
+
+
+    //calculates and creates second sheet within driveFolder
+    let secondAttachment = driveFolder.loadSecondAttachment();
+
+    //only sets second attachment, as the first one is already set.
+    mailFetcher.sendMail('oscar6494@gmail.com','Mail de prueba', 'Se adjuntan los datos en crudo y la planilla generada.','archivos.xlsx',secondAttachment);
+   
+    console.log("I am executed!");
+   //
+  }
+}
